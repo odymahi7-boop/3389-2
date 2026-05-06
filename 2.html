@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>Budget Book 2</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;}
+body{background:#15171c;color:#eee;padding-bottom:100px;}
+/* 顶部统计 */
+.top-bar{background:#1f2937;padding:30px 20px;border-radius:0 0 28px;}
+.balance-text{font-size:16px;opacity:0.8;}
+.balance-num{font-size:38px;font-weight:bold;margin:10px 0;color:#60a5fa;}
+.stat-row{display:flex;justify-content:space-between;gap:10px;}
+.stat-item{text-align:center;flex:1;}
+.stat-val{font-size:18px;font-weight:600;}
+.stat-lab{font-size:13px;opacity:0.7;margin-top:4px;}
+/* 录入区域 */
+.add-box{margin:16px;background:#242b36;border-radius:20px;padding:20px;}
+.type-switch{display:flex;gap:10px;margin-bottom:16px;}
+.type-btn{flex:1;padding:12px;border-radius:12px;border:none;font-size:16px;background:#374151;color:#ccc;}
+.type-btn.active{background:#3b82f6;color:#fff;}
+.type-btn.out.active{background:#f87171;}
+input{width:100%;height:52px;padding:0 16px;border:1px #333 solid;border-radius:12px;font-size:16px;margin-bottom:14px;outline:none;background:#2a323d;color:#fff;}
+.submit{width:100%;height:52px;border:none;border-radius:12px;background:#3b82f6;color:#fff;font-size:17px;}
+/* 账单列表 */
+.list-title{padding:0 18px;margin:20px 0 10px;font-size:17px;color:#ccc;}
+.list-item{background:#242b36;margin:10px 16px;border-radius:16px;padding:16px;display:flex;justify-content:space-between;align-items:center;}
+.item-left .tip{font-size:15px;color:#ddd;}
+.item-left .time{font-size:12px;color:#888;margin-top:4px;}
+.out-money{color:#f87171;font-weight:600;}
+.in-money{color:#60a5fa;font-weight:600;}
+.del{color:#666;font-size:14px;margin-left:12px;}
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="balance-text">Total Balance</div>
+  <div class="balance-num" id="balance">¥0.00</div>
+  <div class="stat-row">
+    <div class="stat-item">
+      <div class="stat-val" id="outTotal">¥0.00</div>
+      <div class="stat-lab">Expense</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-val" id="inTotal">¥0.00</div>
+      <div class="stat-lab">Income</div>
+    </div>
+  </div>
+</div>
+
+<div class="add-box">
+  <div class="type-switch">
+    <button class="type-btn out active" data-type="out">Expense</button>
+    <button class="type-btn in" data-type="in">Income</button>
+  </div>
+  <input type="number" id="money" placeholder="Amount" step="0.01">
+  <input type="text" id="note" placeholder="Remark">
+  <button class="submit" onclick="addRecord()">Save Record</button>
+</div>
+
+<div class="list-title">History Records</div>
+<div id="listWrap"></div>
+
+<script>
+let list = JSON.parse(localStorage.getItem('book2')) || [];
+let curType = 'out';
+document.querySelectorAll('.type-btn').forEach(b=>{
+  b.onclick=()=>{
+    document.querySelectorAll('.type-btn').forEach(i=>i.classList.remove('active'));
+    b.classList.add('active');
+    curType = b.dataset.type;
+  }
+});
+function addRecord(){
+  let m = document.getElementById('money').value;
+  let n = document.getElementById('note').value.trim();
+  if(!m||m<=0)return alert('Invalid amount');
+  let d = new Date();
+  let t = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${d.getMinutes()}`;
+  list.unshift({type:curType,m:Number(m),note:n||Daily,t:t});
+  save();render();calc();
+  document.getElementById('money').value='';
+  document.getElementById('note').value='';
+}
+function save(){localStorage.setItem('book2',JSON.stringify(list));}
+function del(idx){if(confirm('Delete?')){list.splice(idx,1);save();render();}}
+function calc(){
+  let out=0,inCome=0;
+  list.forEach(v=>v.type==='out'?out+=v.m:inCome+=v.m);
+  document.getElementById('balance').innerText = `¥${(inCome-out).toFixed(2)}`;
+  document.getElementById('outTotal').innerText = `¥${out.toFixed(2)}`;
+  document.getElementById('inTotal').innerText = `¥${inCome.toFixed(2)}`;
+}
+function render(){
+  let wrap = document.getElementById('listWrap');
+  wrap.innerHTML='';
+  list.forEach((v,i)=>{
+    let html = `
+    <div class="list-item">
+      <div class="item-left">
+        <div class="tip">${v.note}</div>
+        <div class="time">${v.t}</div>
+      </div>
+      <div style="display:flex;align-items:center">
+        <span class="${v.type==='out'?'out-money':'in-money'}">${v.type==='out'?'-':'+'}${v.m.toFixed(2)}</span>
+        <span class="del" onclick="del(${i})">Del</span>
+      </div>
+    </div>`;
+    wrap.innerHTML += html;
+  });
+}
+calc();render();
+</script>
+</body>
+</html>
